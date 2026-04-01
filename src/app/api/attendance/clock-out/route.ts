@@ -8,6 +8,7 @@ const schema = z.object({
   lng: z.number().min(-180).max(180),
   offline_queued: z.boolean().optional().default(false),
   timestamp: z.string().optional(),
+  remarks: z.string().trim().max(500).optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { log_id, lat, lng, offline_queued, timestamp } = parsed.data
+  const { log_id, lat, lng, offline_queued, timestamp, remarks } = parsed.data
 
   // Fetch the open log — RLS ensures worker can only update their own
   const { data: log, error: fetchError } = await supabase
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
       clock_out_at: clockOutAt,
       clock_out_lat: lat,
       clock_out_lng: lng,
+      remarks: remarks ?? null,
     })
     .eq('id', log_id)
 

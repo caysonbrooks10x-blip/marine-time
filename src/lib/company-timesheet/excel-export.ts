@@ -26,6 +26,7 @@ interface AttendanceLogRecord {
   clock_out_at: string | null
   status: string
   offline_queued: boolean
+  remarks: string | null
   workers: { employee_code: string; name: string; role: string }[] | { employee_code: string; name: string; role: string } | null
   projects: { code: string; name: string }[] | { code: string; name: string } | null
 }
@@ -48,6 +49,11 @@ interface EntryRow {
 
 function buildRemarks(log: AttendanceLogRecord): string {
   const remarks: string[] = []
+
+  // Include user-provided remarks first
+  if (log.remarks) {
+    remarks.push(log.remarks)
+  }
 
   if (log.offline_queued) {
     remarks.push('Offline sync')
@@ -109,6 +115,7 @@ async function fetchCompanyTimesheetData(
       clock_out_at,
       status,
       offline_queued,
+      remarks,
       workers ( employee_code, name, role ),
       projects ( code, name )
     `)

@@ -39,6 +39,7 @@ export default function ClockPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [clockingOut, setClockingOut] = useState(false)
+  const [clockOutRemarks, setClockOutRemarks] = useState('')
 
   const fetchActive = useCallback(async () => {
     try {
@@ -167,6 +168,7 @@ export default function ClockPage() {
     if (!activeSession) return
     setClockingOut(true)
     setError('')
+    const remarks = clockOutRemarks.trim()
 
     let lat: number, lng: number
     try {
@@ -197,9 +199,11 @@ export default function ClockPage() {
         photo_url: null,
         timestamp: new Date().toISOString(),
         log_id: activeSession.id,
+        remarks: remarks || undefined,
       })
       setSuccess('Clock-out queued — will sync when online')
       setActiveSession(null)
+      setClockOutRemarks('')
       await refreshCount()
       setClockingOut(false)
       return
@@ -213,6 +217,7 @@ export default function ClockPage() {
           log_id: activeSession.id,
           lat,
           lng,
+          remarks: remarks || undefined,
         }),
       })
       const json = await res.json()
@@ -225,6 +230,7 @@ export default function ClockPage() {
         const rem = mins % 60
         setSuccess(`Clocked out — ${hrs}h ${rem}m total`)
         setActiveSession(null)
+        setClockOutRemarks('')
         setStep('select_project')
       }
     } catch {
@@ -292,6 +298,21 @@ export default function ClockPage() {
               {success}
             </div>
           )}
+
+          <div className="mb-4">
+            <label htmlFor="clock-out-remarks" className="block text-slate-300 text-lg font-medium mb-2">
+              Remarks (optional)
+            </label>
+            <textarea
+              id="clock-out-remarks"
+              value={clockOutRemarks}
+              onChange={(event) => setClockOutRemarks(event.target.value)}
+              placeholder="Late arrival reason, overtime note, job details..."
+              maxLength={500}
+              rows={4}
+              className="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-4 text-white text-lg placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
+            />
+          </div>
 
           <button
             onClick={handleClockOut}

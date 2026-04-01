@@ -15,6 +15,7 @@ export interface ClockEvent {
   photo_url: null // never store photos offline — upload only when online
   timestamp: string // ISO string
   log_id?: string // required for clock-out
+  remarks?: string // optional remarks for clock-out
 }
 
 const DB_NAME = 'marinetime-queue'
@@ -86,6 +87,7 @@ export async function syncQueue(): Promise<{ synced: number; failed: number }> {
               lng: event.lng,
               offline_queued: true,
               timestamp: event.timestamp,
+              remarks: event.remarks,
             }
 
       const res = await fetch(endpoint, {

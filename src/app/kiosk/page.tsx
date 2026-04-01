@@ -36,6 +36,7 @@ export default function KioskPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [clockingOut, setClockingOut] = useState(false)
+  const [clockOutRemarks, setClockOutRemarks] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -61,6 +62,7 @@ export default function KioskPage() {
     setSelectedSiteId(null)
     setError('')
     setSuccess('')
+    setClockOutRemarks('')
   }
 
   async function handleWorkerSelect(worker: Worker) {
@@ -203,6 +205,7 @@ export default function KioskPage() {
     if (!activeSession) return
     setClockingOut(true)
     setError('')
+    const remarks = clockOutRemarks.trim()
 
     const gps = await getGPS()
     if (!gps) {
@@ -223,8 +226,10 @@ export default function KioskPage() {
         photo_url: null,
         timestamp: new Date().toISOString(),
         log_id: activeSession.id,
+        remarks: remarks || undefined,
       })
       setSuccess(`${selectedWorker?.name} clock-out queued`)
+      setClockOutRemarks('')
       setStep('done')
       setClockingOut(false)
       return
@@ -234,7 +239,12 @@ export default function KioskPage() {
       const res = await fetch('/api/attendance/clock-out', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ log_id: activeSession.id, lat: gps.lat, lng: gps.lng }),
+        body: JSON.stringify({
+          log_id: activeSession.id,
+          lat: gps.lat,
+          lng: gps.lng,
+          remarks: remarks || undefined,
+        }),
       })
       const json = await res.json()
 
@@ -245,6 +255,7 @@ export default function KioskPage() {
         const hrs = Math.floor(mins / 60)
         const rem = mins % 60
         setSuccess(`${selectedWorker?.name} clocked out — ${hrs}h ${rem}m`)
+        setClockOutRemarks('')
         setStep('done')
       }
     } catch {
@@ -406,6 +417,21 @@ export default function KioskPage() {
                 {error}
               </div>
             )}
+
+            <div>
+              <label htmlFor="kiosk-clock-out-remarks" className="block text-slate-300 text-lg font-medium mb-2">
+                Remarks (optional)
+              </label>
+              <textarea
+                id="kiosk-clock-out-remarks"
+                value={clockOutRemarks}
+                onChange={(event) => setClockOutRemarks(event.target.value)}
+                placeholder="Overtime reason, work completed, issue encountered..."
+                maxLength={500}
+                rows={4}
+                className="w-full bg-slate-800 border border-slate-600 rounded-2xl px-4 py-4 text-white text-lg placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
+              />
+            </div>
 
             <button
               onClick={handleClockOut}

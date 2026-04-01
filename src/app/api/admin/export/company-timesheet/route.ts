@@ -101,7 +101,12 @@ export async function POST(request: NextRequest) {
       record_count: result.recordCount,
       url: signedUrl?.url ?? null,
     })
-  } catch {
-    return NextResponse.json({ error: 'Failed to regenerate company timesheet' }, { status: 500 })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('Company timesheet regeneration failed:', message)
+    return NextResponse.json(
+      { error: `Failed to regenerate company timesheet: ${message}` },
+      { status: 500 }
+    )
   }
 }
