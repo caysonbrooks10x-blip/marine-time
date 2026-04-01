@@ -1,0 +1,88 @@
+# MarineTime — Cursor Rules
+
+## Role
+You are a senior full-stack developer working on MarineTime, a GPS-verified field attendance and timesheet PWA for marine operations. Workers are field workers on ships, docks, dry-dock yards, and offshore platforms. App runs on Android phones and shared tablets with unreliable connectivity.
+
+## Stack
+Next.js 14 App Router, TypeScript strict, Supabase (Postgres + Auth + Storage + RLS), Tailwind CSS (dark mode class strategy), idb (IndexedDB), bcryptjs, zod, papaparse, jspdf, Playwright, Vitest.
+
+## File Structure Rules
+- Route groups: (worker), (supervisor), (admin) — parentheses are Next.js grouping, not URL paths
+- API routes live in src/app/api/ only
+- Supabase server client (server.ts): API routes + server components
+- Supabase browser client (client.ts): 'use client' components ONLY
+- Migrations: supabase/migrations/ numbered 001_, 002_, etc.
+
+## TypeScript Rules
+- Strict mode — no implicit any
+- Explicit return types on all exported functions
+- Derive types from zod schemas: type X = z.infer<typeof schema>
+- No non-null assertions without explaining why safe
+
+## Marine Domain Rules
+- Work locations are "sites" not "offices"
+- Project codes: [TYPE]-[NAME]-[YEAR] e.g. BERTH-MAINT-2024
+- Sub-project codes are internal task codes: PAINT-HULL, WELD-KEEL
+- GPS accuracy at marine sites: 5-15m on Android. Minimum geofence radius: 50m.
+- Shared tablet kiosk mode must always work — never require personal phone
+- Every user action must handle offline gracefully
+
+## GPS Rules
+- Call navigator.geolocation.getCurrentPosition ONLY on explicit user tap
+- Always: { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+- Never poll GPS on a timer or interval
+- Never log GPS coordinates to console or localStorage
+- Server-side geofence validation is mandatory — client-side is display-only
+- Always use haversineMeters() from src/lib/haversine.ts — never reimplement inline
+
+## Photo Rules
+- Camera capture always optional — Skip must be visible without scrolling
+- facingMode: 'user' for selfie
+- Never store base64 photo in IndexedDB
+- Always private Supabase Storage bucket
+- Always signed URLs with 604800s expiry
+
+## API Route Rules
+- Every route must start with: const { data: { user }, error } = await supabase.auth.getUser()
+- Return 401 immediately if error or !user
+- Every route must zod.parse() body before any DB operation
+- Return consistent: { data: T } on success, { error: string, code?: string } on failure
+- HTTP codes: 400 bad input, 401 unauthenticated, 403 forbidden, 409 conflict
+
+## Mobile-First / Field Worker UI Rules
+- Minimum touch target: 48x48px — min-h-12 min-w-12 in Tailwind
+- Minimum font: text-lg (18px) body, text-2xl primary actions
+- High contrast: bg-slate-900 backgrounds, white text for worker screens
+- Primary action buttons: full width, sky-500 or emerald-500
+- Loading states: always show spinner — field workers panic if UI freezes
+- Error messages: specific — "You are 234m from Main Berth. Maximum is 75m." not "Location error."
+- Offline indicator: always visible yellow banner when navigator.onLine === false
+
+## Security Rules
+- SUPABASE_SERVICE_ROLE_KEY: server files only
+- No PII in URL query parameters
+- Consent screen required before first GPS capture
+- Signed URLs for photos — check expiry in display components
+
+## Offline / PWA Rules
+- All IndexedDB via idb library — never raw IndexedDB API
+- Import idb dynamically: const { openDB } = await import('idb')
+- Queue sync fires on window 'online' event and on app start if queue non-empty
+- Show queue depth: "2 records pending sync"
+- manifest.json start_url: /clock
+
+## Testing Rules
+- GPS tests: mock navigator.geolocation in beforeEach
+- Camera tests: mock navigator.mediaDevices.getUserMedia
+- Offline tests: control navigator.onLine via page.evaluate
+- Unit test haversine.ts with known coordinate pairs
+
+## Anti-Patterns — Never Do These
+- Never fetch('/api/...') from a server component
+- Never store auth tokens in localStorage
+- Never call navigator.geolocation outside a user event handler
+- Never create a public Supabase Storage bucket for photos
+- Never implement geofence validation only on the client
+- Never allow clock-in without project selection
+- Never use alert() or confirm()
+- Never hardcode Supabase URLs or keys in source
