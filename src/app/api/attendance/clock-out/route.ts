@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { triggerAttendanceWebhook } from '@/lib/webhook-trigger'
 
 const schema = z.object({
   log_id: z.string().uuid(),
@@ -63,6 +64,9 @@ export async function POST(request: NextRequest) {
   if (updateError) {
     return NextResponse.json({ error: 'Failed to clock out' }, { status: 500 })
   }
+
+  // Trigger webhook for workbook regeneration (fire-and-forget)
+  triggerAttendanceWebhook('UPDATE', { id: log_id, worker_id: log.worker_id }, { id: log_id })
 
   const durationMs = new Date(clockOutAt).getTime() - new Date(log.clock_in_at).getTime()
   const durationMinutes = Math.round(durationMs / 60000)

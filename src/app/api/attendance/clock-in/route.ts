@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { haversineMeters } from '@/lib/haversine'
+import { triggerAttendanceWebhook } from '@/lib/webhook-trigger'
 
 const schema = z.object({
   worker_id: z.string().uuid().optional(),
@@ -123,6 +124,9 @@ export async function POST(request: NextRequest) {
   if (insertError || !log) {
     return NextResponse.json({ error: 'Failed to create attendance record' }, { status: 500 })
   }
+
+  // Trigger webhook for workbook regeneration (fire-and-forget)
+  triggerAttendanceWebhook('INSERT', { id: log.id, worker_id: workerId, project_id })
 
   return NextResponse.json({
     data: {
